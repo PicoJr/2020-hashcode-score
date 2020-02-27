@@ -1,0 +1,5 @@
+/bin/
+/include/
+/lib/
+.idea/
+__pycache__/
