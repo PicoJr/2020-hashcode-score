@@ -2,7 +2,8 @@
 Hashcode 2020 data structures and parsing helpers
 """
 
-from typing import List, Set, TextIO
+import logging
+from typing import List, Set, TextIO, Dict
 
 
 class Library:  # pylint: disable=too-few-public-methods
@@ -34,6 +35,7 @@ class InputDataSet:  # pylint: disable=too-few-public-methods
 
 class LibraryOrder:  # pylint: disable=too-few-public-methods
     """Library Order"""
+
     def __init__(self, id_: int, n_books: int, books: List[int]):
         self.id_ = id_
         self.n_books = n_books
@@ -42,6 +44,7 @@ class LibraryOrder:  # pylint: disable=too-few-public-methods
 
 class OutputDataSet:  # pylint: disable=too-few-public-methods
     """Output Data"""
+
     def __init__(self, n_libraries, library_orders: List[LibraryOrder]):
         self.n_libraries = n_libraries
         self.library_orders = library_orders  # List[LibraryOrder]
@@ -67,18 +70,54 @@ def parse_input_file(input_file) -> InputDataSet:
     return InputDataSet(total_books, total_libraries, total_days, book_scores, libraries)
 
 
-def parse_output_file(output_file) -> OutputDataSet:
+def parse_output_file(output_file, n_libraries, n_books) -> (bool, OutputDataSet):
     """
     Parse output file and return an initialized OutputDataSet struct
     :param output_file: file for parsing
+    :param n_libraries: number of libraries from input file
+    :param n_books: number of books from input file
     :return: OutputDataSet
     """
     n_orders = int(output_file.readline())  # L
     library_orders = []
-    for _ in range(n_orders):
-        (id_, n_books) = map(int, output_file.readline().split(' '))
-        books = list(map(int, output_file.readline().split(' ')))
-        library_orders.append(LibraryOrder(id_, n_books, books))
+    library_found: Dict[int, int] = {}  # library, line 1st definition
+    books_found: Dict[int, int] = {}  # book, line 1st definition
+    for line in range(n_orders):
+        current_line = 2 * line + 2
+        library_definition = output_file.readline()
+        try:
+            (id_, lib_n_books) = map(int, library_definition.split(' '))
+            if id_ < 0 or id_ >= n_libraries:
+                logging.warning(f"line {current_line}: library id {id_} is invalid should be >= 0 and < {n_libraries}")
+                continue
+            if lib_n_books == 0:
+                logging.warning(f"line {current_line}: library books sent {lib_n_books} == 0")
+            if id_ in library_found:
+                logging.warning(f"line {current_line}: library {id_} previously defined line {library_found[id_]}")
+                continue
+            else:
+                library_found[id_] = current_line
+        except ValueError as _:
+            logging.warning(
+                f"line {current_line}: invalid content: '{library_definition}' should be <library_id> <books>")
+            continue
+        current_line = 2 * line + 3
+        library_books = output_file.readline()
+        try:
+            books = list(map(int, library_books.split(' ')))
+            for book in books:
+                if book < 0 or book >= n_books:
+                    logging.warning(f"line {current_line}: book id {book} is invalid should be >= 0 and < {n_books}")
+                if book in books_found:
+                    logging.debug(f"line {current_line}: book {book} previously defined line {books_found[book]}")
+                else:
+                    books_found[book] = current_line
+        except ValueError as _:
+            logging.warning(f"line {current_line}: invalid content: '{library_books}' should be <books>...")
+            continue
+        if len(books) != lib_n_books:
+            logging.warning(f"line {current_line}: number of books ({len(books)}) does not match declaration at line {current_line - 1} ({lib_n_books})")
+        library_orders.append(LibraryOrder(id_, lib_n_books, books))
     return OutputDataSet(n_orders, library_orders)
 
 

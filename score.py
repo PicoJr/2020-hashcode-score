@@ -34,7 +34,7 @@ def compute_score(input_data_set: InputDataSet, output_data_set: OutputDataSet) 
         books_sent = library_order.books[:n_books_sent]
         logging.debug("day %s: %s books sent: %s", signup_day, n_books_sent, books_sent)
         for book in books_sent:
-            if book not in books_already_sent:
+            if book not in books_already_sent and 0 <= book < len(input_data_set.book_scores):
                 book_score = input_data_set.book_scores[book]
                 score += book_score
                 books_already_sent.add(book)
@@ -53,7 +53,7 @@ def main():
     with open(args.input) as input_file:
         input_data_set = parse_input_file(input_file)
     with open(args.output) as output_file:
-        output_data_set = parse_output_file(output_file)
+        output_data_set = parse_output_file(output_file, input_data_set.n_libraries, input_data_set.n_books)
 
     score = compute_score(input_data_set, output_data_set)
     print(f"score: {score:,}")
